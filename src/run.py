@@ -1,12 +1,8 @@
-from idlelib.browser import file_open
-
 import gymnasium as gym
 import argparse
 from gymnasium import spaces
 import numpy as np
 import re
-
-from algorithms.GA import GeneticAlgorithm
 
 
 class Environment:
