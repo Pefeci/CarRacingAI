@@ -101,6 +101,7 @@ if __name__ == "__main__":
 
 
 
+
     best_individual, total_reward = load_best_individual("best_individual_fitness.txt")
     print(f"{total_reward} : {best_individual}")
 
