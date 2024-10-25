@@ -1,6 +1,10 @@
 import numpy as np
 import random
 
+# TODO Pokud fitness spadne pod -10 ukončit run hodit tot reward na -100 a done = False
+
+
+
 class GeneticAlgorithm:
     def __init__(self, env, population_size=50, genome_length=1000, generations=10, mutation_rate=0.1, crossover_rate=0.7, continuous=True):
         self.env = env

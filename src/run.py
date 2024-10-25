@@ -4,6 +4,8 @@ from gymnasium import spaces
 import numpy as np
 import re
 
+from src.algorithms.GA import GeneticAlgorithm
+
 
 class Environment:
     def __init__(self, lap_complete_percent=0.95, render_mode="rgb_array", continuous=False, algorithm="GA"):
@@ -47,7 +49,7 @@ def save_best_individual(best_individual, fitness):
                 + str(fitness) + "\t\n")
 
 def load_best_individual(file_name):
-    with open("best_individual_fitness.txt", "r") as f:
+    with open(file_name, "r") as f:
         raw_text = f.read()
         individuals = {}
         raw_text = re.split("\n|\t", raw_text)
@@ -75,6 +77,7 @@ def load_best_individual(file_name):
                 fitnesses.append(fitness)
                 is_end = False
                 individuals[fitness] = individual
+                individual = []
                 is_fitness = False
         best_fitness = max(fitnesses)
         return individuals[best_fitness], best_fitness
@@ -102,7 +105,7 @@ if __name__ == "__main__":
 
 
 
-    best_individual, total_reward = load_best_individual("best_individual_fitness.txt")
+    best_individual, total_reward = load_best_individual("src\\best_individual_fitness.txt")
     print(f"{total_reward} : {best_individual}")
 
 
@@ -111,11 +114,11 @@ if __name__ == "__main__":
     # # env = Environment(continuous=continuous)
     # # ga = GeneticAlgorithm(env, continuous=continuous)
     # #
-    # render_env=Environment(continuous=continuous, render_mode="human")
-    # render_ga = GeneticAlgorithm(render_env, continuous=continuous)
+    render_env=Environment(continuous=True, render_mode="human")
+    render_ga = GeneticAlgorithm(render_env, continuous=True)
     # #
     # # best_individual = ga.run()
     # #
     # # print("_________________TESTING BEST INDIVIDUAL___________________")
-    # fit = render_ga.evaluate_best(best_individual)
+    fit = render_ga.evaluate_best(best_individual)
     # # save_best_individual(best_individual, fit)
