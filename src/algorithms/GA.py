@@ -19,7 +19,7 @@ class GeneticAlgorithm:
         else:
             return np.random.choice(len(self.env.action_space), self.genome_length)
 
-    def fitness(self, genome):
+    def evaluate(self, genome):
         obs = self.env.reset()
         total_reward = 0
         done = False
@@ -61,7 +61,7 @@ class GeneticAlgorithm:
             # Evaluate the fitness of the population
             fitnesses = []
             for individual in self.population:
-                fitnesses.append(self.fitness(individual))
+                fitnesses.append(self.evaluate(individual))
 
             # Keep track of the best individual in the current generation
             best_fitness = max(fitnesses)
