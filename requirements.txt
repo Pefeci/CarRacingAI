@@ -7,3 +7,5 @@ gymnasium[box2d]
 imageio 
 ffmpeg
 matplotlib
+opencv-python
+scikit-image
