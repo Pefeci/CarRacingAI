@@ -4,11 +4,11 @@ from gymnasium import spaces
 import numpy as np
 import re
 
-from src.algorithms.GA import GeneticAlgorithm
+from algorithms.GA import GeneticAlgorithm
 
 
 class Environment:
-    def __init__(self, lap_complete_percent=0.95, render_mode="rgb_array", continuous=False, algorithm="GA"):
+    def __init__(self, lap_complete_percent=0.95, render_mode="rgb_array", continuous=False):
         self.continuous = continuous
         self.env = gym.make('CarRacing-v3', render_mode=render_mode, continuous=continuous, lap_complete_percent=lap_complete_percent)
 
@@ -43,8 +43,10 @@ class Environment:
     def render(self):
         return self.env.render()
 
-def save_best_individual(best_individual, fitness):
-    with open("best_individual_fitness.txt", "a") as f:
+
+
+def save_best_individual(best_individual, fitness, file_name):
+     with open(file_name, "a") as f:
         f.write(str(best_individual) + "\t"
                 + str(fitness) + "\t\n")
 
@@ -88,37 +90,47 @@ def load_best_individual(file_name):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="CarRacing", description="CarRacing AI learning")
-    parser.add_argument("-d", "--do", type=str,choices=["train", "evaluate"], help="provide action: {train, evaluate}", default="train")
-    parser.add_argument("-a","--algorithm", type=str,choices=["GA"], help="provide algorithm: {GA}", default="GA")
-    parser.add_argument("-l","--load", type=str, help="name of document obtaining individual", default="best_individual_fitness.txt")
+    parser.add_argument("-d", "--do", type=str,choices=["train", "evaluate"], help="provide action", default="train")
+    parser.add_argument("-a","--algorithm", type=str,choices=["GA"], help="provide algorithm", default="GA")
+    parser.add_argument("-l","--load", type=str, help="name of document obtaining individual", default="src\\best_individual_fitness.txt")
     parser.add_argument("-g", "--generations", type=int, help="number of generations", default=10)
     parser.add_argument("-p", "--populations", type=int, help="number of populations", default=10)
-    parser.add_argument("-s", "--steps", type=int, help="number of steps if 0 continuous regime", default=1000) # TODO add continuous regime for GA
+    parser.add_argument("-st", "--steps", type=int, help="number of steps if 0 continuous regime", default=1000) # TODO add continuous regime for GA
     parser.add_argument("-m", "--mutation", type=float, help="probability of mutation", default=0.2)
-    parser.add_argument("-c", "--continuous", type=bool, help="bool to choose between discrete and box action space")
+    parser.add_argument("-c", "--continuous", type=bool, help="bool to choose between discrete and box action space", default=True)
     parser.add_argument("-co", "--crossover", type=float, help="probability of crossover", default=0.5)
     parser.add_argument("-t", "--tournament", type=int, help="size of tournament pool", default=5)
+    parser.add_argument("-s", "--save", type=str, help="name of document obtaining individuals",default="src\\best_individual_fitness.txt", required=False)
+    parser.add_argument("-gl", "--genome_length", type=int, help="genome length", default=500)
+    parser.add_argument("--show", type=bool, help="show best individual", default=False)
     args = parser.parse_args()
 
+    continuous = args.continuous
+    env = Environment(continuous=continuous)
+
+    if args.do == "train":
+        if args.algorithm == "GA":
+            ga = GeneticAlgorithm(env,population_size=args.populations, genome_length=args.genome_length, generations=args.generations, mutation_rate=args.mutation,
+                                  crossover_rate=args.crossover, tournament_size=args.tournament, continuous=continuous)
+            best_individual = ga.run()
+            if args.show:
+                render_env = Environment(continuous=continuous, render_mode="human")
+                render_ga = GeneticAlgorithm(render_env, continuous=continuous)
+                fitness = render_ga.evaluate_best(best_individual)
+            else:
+                fitness = ga.evaluate_best(best_individual)
+            if args.save:
+                save_best_individual(best_individual, fitness=fitness, file_name=args.save)
 
 
 
-
-
-    best_individual, total_reward = load_best_individual("src\\best_individual_fitness.txt")
-    print(f"{total_reward} : {best_individual}")
-
-
-    # continuous = True
-    # # parser = argparse.ArgumentParser()
-    # # env = Environment(continuous=continuous)
-    # # ga = GeneticAlgorithm(env, continuous=continuous)
-    # #
-    render_env=Environment(continuous=True, render_mode="human")
-    render_ga = GeneticAlgorithm(render_env, continuous=True)
-    # #
-    # # best_individual = ga.run()
-    # #
-    # # print("_________________TESTING BEST INDIVIDUAL___________________")
-    fit = render_ga.evaluate_best(best_individual)
-    # # save_best_individual(best_individual, fit)
+    if args.do == "evaluate":
+        file_load = args.load
+        best_individual, total_reward = load_best_individual(file_load)
+        print(f"{total_reward} : {best_individual}")
+        render_env = Environment(continuous=continuous, render_mode="human")
+        if args.algorithm == "GA":
+            render_ga = GeneticAlgorithm(render_env, continuous=continuous)
+            fit = render_ga.evaluate_best(best_individual)
+        else:
+            exit()
