@@ -5,6 +5,7 @@ import numpy as np
 import re
 
 from algorithms.GA import GeneticAlgorithm
+from algorithms.GP import GeneticProgramming
 
 
 class Environment:
@@ -91,10 +92,10 @@ def load_best_individual(file_name):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(prog="CarRacing", description="CarRacing AI learning")
     parser.add_argument("-d", "--do", type=str,choices=["train", "evaluate"], help="provide action", default="train")
-    parser.add_argument("-a","--algorithm", type=str,choices=["GA"], help="provide algorithm", default="GA")
+    parser.add_argument("-a","--algorithm", type=str,choices=["GA", "GP"], help="provide algorithm", default="GA")
     parser.add_argument("-l","--load", type=str, help="name of document obtaining individual", default="src\\best_individual_fitness.txt")
-    parser.add_argument("-g", "--generations", type=int, help="number of generations", default=10)
-    parser.add_argument("-p", "--populations", type=int, help="number of populations", default=10)
+    parser.add_argument("-g", "--generations", type=int, help="number of generations", default=20)
+    parser.add_argument("-p", "--populations", type=int, help="number of populations", default=20)
     parser.add_argument("-st", "--steps", type=int, help="number of steps if 0 continuous regime", default=1000) # TODO add continuous regime for GA
     parser.add_argument("-m", "--mutation", type=float, help="probability of mutation", default=0.2)
     parser.add_argument("-c", "--continuous", type=bool, help="bool to choose between discrete and box action space", default=True)
@@ -121,6 +122,11 @@ if __name__ == "__main__":
                 fitness = ga.evaluate_best(best_individual)
             if args.save:
                 save_best_individual(best_individual, fitness=fitness, file_name=args.save)
+        if args.algorithm == "GP":
+            gp = GeneticProgramming(env, population_size=args.populations, generations=args.generations, mutation_rate=args.mutation,crossover_rate=args.crossover,
+                                    tournament_size=args.tournament, continuous=continuous)
+            best_individual = gp.run()
+            print(best_individual)
 
 
 

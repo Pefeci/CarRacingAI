@@ -3,9 +3,9 @@ import operator
 import numpy as np
 import random
 
-from src.algorithms.CarRacingFeatureExtractor import CarRacingFeatureExtractor
+from algorithms.CarRacingFeatureExtractor import CarRacingFeatureExtractor
 
-
+# TODO bylo by fajn dodelat evaluate best pro zobrazeni nejlepsiho individua
 def protected_div(left, right):
     try:
         return left / right
@@ -29,7 +29,7 @@ class GeneticProgramming:
         creator.create("Individual", gp.PrimitiveTree, fitness=creator.FitnessMax)
 
 
-        self.pset = gp.PrimitiveSet("MAIN", 3)  # Three inputs: speed, angle, distance to center
+        self.pset = gp.PrimitiveSet("MAIN", 3)  # Three inputs: speed, angle, reward
         self.pset.addPrimitive(operator.add, 2)
         self.pset.addPrimitive(operator.sub, 2)
         self.pset.addPrimitive(operator.mul, 2)
@@ -39,7 +39,7 @@ class GeneticProgramming:
 
         self.pset.renameArguments(ARG0="speed")
         self.pset.renameArguments(ARG1="angle")
-        self.pset.renameArguments(ARG2="distance")
+        self.pset.renameArguments(ARG2="last_reward")
 
         self.toolbox.register("expr", gp.genHalfAndHalf, pset=self.pset, min_=1, max_=2)
         self.toolbox.register("individual", tools.initIterate, creator.Individual, self.toolbox.expr)
@@ -59,69 +59,99 @@ class GeneticProgramming:
         total_reward = 0
         max_steps = self.max_steps
         crfe = CarRacingFeatureExtractor()
+        grass_counter = 0
+        last_reward = 0
 
-
-        for step in range(max_steps):
-            speed, angle, distance = crfe.extract_features(obs)
-            action_value = func(speed, angle, distance)
+        #for step in range(max_steps):
+        while total_reward >= 0:
+            speed, angle, _ = crfe.extract_features(obs)
+            action_value = func(speed, angle, last_reward)
             action = self.map_function(action_value)
 
-            obs, reward, done, info = self.env.step(action)
+            #print(f"speed: {speed}, angle: {angle}, last_reward: {last_reward}")
+            obs, reward, done, truncated, _ = self.env.step(action)
+            last_reward = reward
+            last_total_reward = total_reward
             total_reward += reward
+
+            if last_total_reward > total_reward:
+                grass_counter += 1
+                #print(grass_counter)
+                if grass_counter >= 30:
+                    break
+            else:
+                grass_counter = 0
 
             if done:
                 break
 
-            return total_reward,
+        return total_reward,
 
-        def map_function(self, action_value):
-            if not self.continuous:
-                if action_value < -0.5: #steer left
-                    return 1
-                elif action_value < 0: #break
-                    return 4
-                elif action_value < 0.5: #gas
-                    return 3
-                else:       #steer right
-                    return 2
-        def run(self):
-            population = self.toolbox.population(n=self.population_size)
+    def map_function(self, action_value):
+        if not self.continuous:
+            if action_value < -0.5: #steer left
+                return 1
+            elif action_value < 0: #break
+                return 4
+            elif action_value < 0.5: #gas
+                return 3
+            else:       #steer right
+                return 2
+        else:
+            if action_value < -0.5: #steer left
+                #return np.array([-1,0,0]).astype(np.float32)
+                return 1
+            elif action_value < 0: #break
+                #return np.array([0,0,1]).astype(np.float32)
+                return 4
+            elif action_value < 0.5: #gas
+                #return np.array([0,1,0]).astype(np.float32)
+                return 3
+            else:       #steer right
+                #return np.array([1,0,0]).astype(np.float32)
+                 return 2
 
-            fitnesses = list(map(self.toolbox.evaluate, population))
-            for ind, fit in zip(population, fitnesses):
+
+
+
+    def run(self):
+        population = self.toolbox.population(n=self.population_size)
+
+        fitnesses = list(map(self.toolbox.evaluate, population))
+        for ind, fit in zip(population, fitnesses):
+            ind.fitness.values = fit
+
+        for gen in range(self.generations):
+
+            offspring = self.toolbox.select(population, len(population))
+            offspring = list(map(self.toolbox.clone, offspring))
+
+            # Apply crossover and mutation
+            for child1, child2 in zip(offspring[::2], offspring[1::2]):
+                if random.random() < self.crossover_rate:
+                    self.toolbox.mate(child1, child2)
+                    del child1.fitness.values
+                    del child2.fitness.values
+
+            for mutant in offspring:
+                if random.random() < self.mutation_rate:
+                    self.toolbox.mutate(mutant)
+                    del mutant.fitness.values
+
+            # Evaluate new individuals
+            invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+            fitnesses = map(self.toolbox.evaluate, invalid_ind)
+            for ind, fit in zip(invalid_ind, fitnesses):
                 ind.fitness.values = fit
 
-            for gen in range(self.generations):
+            # Replace population
+            population[:] = offspring
 
-                offspring = self.toolbox.select(population, len(population))
-                offspring = list(map(self.toolbox.clone, offspring))
+            # Gather stats
+            fits = [ind.fitness.values[0] for ind in population]
+            best_ind = tools.selBest(population, 1)[0]
+            print(f"Generation {gen} - Best Fitness: {best_ind.fitness.values[0]}: {best_ind}")
 
-                # Apply crossover and mutation
-                for child1, child2 in zip(offspring[::2], offspring[1::2]):
-                    if random.random() < self.crossover_rate:
-                        self.toolbox.mate(child1, child2)
-                        del child1.fitness.values
-                        del child2.fitness.values
-
-                for mutant in offspring:
-                    if random.random() < self.mutation_rate:
-                        self.toolbox.mutate(mutant)
-                        del mutant.fitness.values
-
-                # Evaluate new individuals
-                invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
-                fitnesses = map(self.toolbox.evaluate, invalid_ind)
-                for ind, fit in zip(invalid_ind, fitnesses):
-                    ind.fitness.values = fit
-
-                # Replace population
-                population[:] = offspring
-
-                # Gather stats
-                fits = [ind.fitness.values[0] for ind in population]
-                best_ind = tools.selBest(population, 1)[0]
-                print(f"Generation {gen} - Best Fitness: {best_ind.fitness.values[0]}")
-
-                # Return best individual
-            return tools.selBest(population, 1)[0]
+            # Return best individual
+        return tools.selBest(population, 1)[0]
 
