@@ -2,7 +2,7 @@ from deap import base, creator, tools, gp, algorithms
 import operator
 import numpy as np
 import random
-
+from gymnasium.envs.box2d import car_dynamics
 from algorithms.CarRacingFeatureExtractor import CarRacingFeatureExtractor
 
 # TODO bylo by fajn dodelat evaluate best pro zobrazeni nejlepsiho individua
@@ -70,7 +70,8 @@ class GeneticProgramming:
 
             #print(f"speed: {speed}, angle: {angle}, last_reward: {last_reward}")
             obs, reward, done, truncated, _ = self.env.step(action)
-            last_reward = reward
+            car = self.env.car #TODO ja babyyyyy
+             last_reward = reward
             last_total_reward = total_reward
             total_reward += reward
 
@@ -84,7 +85,6 @@ class GeneticProgramming:
 
             if done:
                 break
-
         return total_reward,
 
     def map_function(self, action_value):

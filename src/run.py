@@ -3,6 +3,8 @@ import argparse
 from gymnasium import spaces
 import numpy as np
 import re
+from gymnasium.envs.box2d import car_dynamics, car_racing, CarRacing
+from typing_extensions import Optional
 
 from algorithms.GA import GeneticAlgorithm
 from algorithms.GP import GeneticProgramming
@@ -11,7 +13,11 @@ from algorithms.GP import GeneticProgramming
 class Environment:
     def __init__(self, lap_complete_percent=0.95, render_mode="rgb_array", continuous=False):
         self.continuous = continuous
-        self.env = gym.make('CarRacing-v3', render_mode=render_mode, continuous=continuous, lap_complete_percent=lap_complete_percent)
+        #self.env = gym.make('CarRacing-v3', render_mode=render_mode, continuous=continuous, lap_complete_percent=lap_complete_percent)
+        self.env = CarRacing(render_mode=render_mode, continuous=continuous, lap_complete_percent=lap_complete_percent, verbose=True)
+        self.car: car_dynamics.Car = self.env.car
+
+
 
         if not continuous:
             self.action_space = spaces.discrete.Discrete(5)
@@ -107,7 +113,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     continuous = args.continuous
-    env = Environment(continuous=continuous)
+    env = Environment(continuous=continuous, render_mode="human")
 
     if args.do == "train":
         if args.algorithm == "GA":
@@ -115,7 +121,7 @@ if __name__ == "__main__":
                                   crossover_rate=args.crossover, tournament_size=args.tournament, continuous=continuous)
             best_individual = ga.run()
             if args.show:
-                render_env = Environment(continuous=continuous, render_mode="human")
+                render_env = Environment(continuous=continuous)
                 render_ga = GeneticAlgorithm(render_env, continuous=continuous)
                 fitness = render_ga.evaluate_best(best_individual)
             else:
