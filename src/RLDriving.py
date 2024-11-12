@@ -6,9 +6,6 @@ import os
 # Create the CarRacing environment
 env = gym.make('CarRacing-v2')
 
-log_dir = './ppo_car_racing_tf/'
-os.makedirs(log_dir, exist_ok=True)
-
 # Define the Actor-Critic model
 class ActorCritic(tf.keras.Model):
     def __init__(self, action_space):
@@ -48,18 +45,37 @@ class PPOAgent:
         self.max_timesteps = 1000000
 
     def collect_experience(self):
-        state = self.env.reset()
+        state, _ = self.env.reset()  # The state should be reset with gymnasium
         done = False
         episode_rewards = 0
         episode_length = 0
         
         while not done:
-            state =  np.expand_dims(state, axis=0)  # Add batch dimension
-            action_probs, _ = self.model(state)
-            action = np.random.choice(self.env.action_space.n, p=action_probs.numpy().flatten())  # Sample action
+            state = np.expand_dims(state, axis=0)  # Add batch dimension (needed for conv layers)
+            
+            # Convert the state to float32 and normalize it (pixel values between 0 and 1)
+            state = state.astype(np.float32) / 255.0  # Normalize to [0, 1]
+            
+            # Feed the state to the model and get the action and value
+            action, _ = self.model(state)
+            action = np.squeeze(action, axis=0)  # Remove batch dimension from the action
 
+            # Ensure action is of type float32 and clip it to the range [-1, 1]
+            action = np.clip(np.asarray(action, dtype=np.float32), -1, 1)
+
+            # Debugging: Print the action to verify it is within the valid range
+            print("Action:", action)
+
+            # Take action in the environment
             next_state, reward, done, truncated, info = self.env.step(action)
+            
+            # Ensure `next_state` is consistent with state shape (it should be (96, 96, 3))
+            next_state = np.expand_dims(next_state, axis=0)  # Add batch dimension for processing
+            next_state = next_state.astype(np.float32) / 255.0  # Normalize to [0, 1]
+            
+            # Store the transition (state, action, reward, next_state, done)
             self.buffer.append([state, action, reward, done, next_state])
+
             state = next_state
             episode_rewards += reward
             episode_length += 1
@@ -91,6 +107,8 @@ while timesteps < total_timesteps:
 model.save('ppo_car_racing_tf')
 
 
+log_dir = "logs/"
+os.makedirs(log_dir, exist_ok=True)
 
 # Load the trained model
 model = tf.keras.models.load_model(log_dir + "ppo_car_racing_tf")
