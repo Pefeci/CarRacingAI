@@ -3,13 +3,28 @@ import gymnasium as gym
 import numpy as np
 import os
 
-# Create the CarRacing environment
+from keras.saving import register_keras_serializable
+
 env = gym.make('CarRacing-v3')
 
-# Define the Actor-Critic model
+@register_keras_serializable()
 class ActorCritic(tf.keras.Model):
-    def __init__(self, action_space):
-        super(ActorCritic, self).__init__()
+    def __init__(self, action_space, **kwargs): 
+        super(ActorCritic, self).__init__(**kwargs)
+        self.action_space = action_space
+
+        #self.action_space = tf.constant(action_space, dtype=tf.int32)
+        
+        if isinstance(action_space, gym.spaces.Box):
+            self.action_space = {
+                "low": action_space.low.tolist(),
+                "high": action_space.high.tolist(),
+                "shape": action_space.shape,
+                "dtype": str(action_space.dtype),
+            }
+        else:
+            raise ValueError("Unsupported action_space type. Expected gymnasium.spaces.Box.")
+        
         # Define the layers
         self.conv1 = tf.keras.layers.Conv2D(32, (3, 3), activation='relu')
         self.conv2 = tf.keras.layers.Conv2D(64, (3, 3), activation='relu')
@@ -35,11 +50,27 @@ class ActorCritic(tf.keras.Model):
 
         action = tf.concat([steering, acceleration, brake], axis=-1)
 
-
         #action = self.actor_output(x)  # Output action (continuous)
         value = self.critic_output(x)  # Output value estimate
         return action, value
+    
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            "action_space": self.action_space
+        })
+        return config
 
+    @classmethod
+    def from_config(cls, config):
+        action_space_dict = config.pop("action_space")      
+        action_space = gym.spaces.Box(
+            low=np.array(action_space_dict["low"], dtype=action_space_dict["dtype"]),
+            high=np.array(action_space_dict["high"], dtype=action_space_dict["dtype"]),
+            shape=tuple(action_space_dict["shape"]),
+            dtype=action_space_dict["dtype"]
+        )
+        return cls(action_space=action_space, **config)
 
 # Define the PPO agent class
 class PPOAgent:
@@ -225,8 +256,6 @@ class PPOAgent:
 if __name__ == '__main__':
     # Create model and agent
 
-
-
     action_space = env.action_space
     model = ActorCritic(action_space)
     agent = PPOAgent(env, model)
@@ -255,6 +284,58 @@ if __name__ == '__main__':
     env = gym.make('CarRacing-v3', render_mode='human')
     obs = env.reset()
     done = False
+
+obs = env.reset()  # Reset environment
+done = False
+
+while not done:
+    try:
+        # Debugging: Print the type and content of the observation
+        print("Type of obs:", type(obs))
+        print("Content of obs:", obs)
+
+        # If obs is a tuple, extract the first element as the actual observation
+        if isinstance(obs, tuple):
+            obs = obs[0]  # Adjust index based on the structure of the tuple
+
+        # Convert to numpy array and ensure correct dtype
+        obs = np.array(obs, dtype=np.float32)
+
+        # Check if the observation has the expected dimensions
+        if len(obs.shape) != 3:
+            raise ValueError(f"Unexpected observation shape: {obs.shape}")
+
+        # Add batch dimension
+        obs = np.expand_dims(obs, axis=0)  # Shape should now be (1, 96, 96, 3)
+
+    except Exception as e:
+        print("Error processing observation:", e)
+        break
+
+
+    # Get action probabilities from the model
+    '''
+    action_probs, _ = model(obs)
+    print("Action probabilities:", action_probs)
+
+    # Sample an action (replace with your action logic)
+    action = np.argmax(action_probs)  # Example: choose the action with the highest probability
+
+    # Step the environment with the chosen action
+    obs, reward, done, info = env.step(action)
+    print(f"Reward: {reward}, Done: {done}") '''
+
+
+    # Get action probabilities from the model
+    action_probs, _ = model(obs)
+    print("Action probabilities:", action_probs)
+
+    # Sample an action (replace with your action logic)
+    action = np.argmax(action_probs)  # Example: choose the action with the highest probability
+
+    # Step the environment with the chosen action
+    obs, reward, done, info = env.step(action)
+    print(f"Reward: {reward}, Done: {done}")
 
     for _ in range(1000):
         action_probs, _ = model(np.expand_dims(obs, axis=0))
