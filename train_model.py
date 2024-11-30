@@ -40,11 +40,18 @@ eval_callback = EvalCallback(
 # Initialize SAC
 model = SAC('CnnPolicy', env, verbose=0, buffer_size=50_000, device='cuda')
 
+# Save a checkpoint every 50,000 steps
+checkpoint_callback = CheckpointCallback(
+    save_freq=50_000,
+    save_path="./checkpoints/",
+    name_prefix="sac_car_racing"
+)
+
 # Train the model
 model.learn(
     total_timesteps=750_000,
     progress_bar=True,
-    callback=[eval_callback]
+    callback=[eval_callback, checkpoint_callback]
 )
 
 # Save the model
@@ -52,3 +59,4 @@ model.save(os.path.join(log_dir, "sac_car_racing"))
 
 env.close()
 env_val.close()
+

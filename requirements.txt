@@ -1,9 +1,0 @@
-gymnasium[Box2D]
-gymnasium[robotics]
-swig
-# on windows it is required to install VS buildToools version 14.0 or greater: https://visualstudio.microsoft.com/visual-cpp-build-tools/
-deap
-gymnasium[box2d]
-imageio 
-ffmpeg
-matplotlib
