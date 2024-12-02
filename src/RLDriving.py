@@ -3,6 +3,8 @@ import gymnasium as gym
 import numpy as np
 import os
 
+from numpy import dtypes
+
 # Create the CarRacing environment
 env = gym.make('CarRacing-v3')
 
@@ -116,7 +118,7 @@ class PPOAgent:
             if last_episode_rewards > episode_rewards:
                 grass_counter += 1
                 if grass_counter >= 129:
-                    print(f'shit {grass_counter}')
+                    print(f'not learning enough {grass_counter}')
                     done = True
             else:
                 grass_counter = 0
@@ -241,26 +243,23 @@ if __name__ == '__main__':
         if timesteps % 10000 == 0:
             print(f"Timesteps: {timesteps}, Total Rewards: {rewards}")
 
-    # Save the trained model
-    model.save('ppo_car_racing_tf.keras')
-
-
-    #log_dir = "logs/"
-    #os.makedirs(log_dir, exist_ok=True)
-
-    # Load the trained model
-    model = tf.keras.models.load_model("ppo_car_racing_tf.keras")
-
     # Test the trained agent
     env = gym.make('CarRacing-v3', render_mode='human')
-    obs = env.reset()
+    obs, _ = env.reset()
     done = False
 
-    for _ in range(1000):
-        action_probs, _ = model(np.expand_dims(obs, axis=0))
-        action = np.argmax(action_probs.numpy())  # Take the action with the highest probability
+    obs = obs.astype(np.float32) / 255.0
+
+    for _ in range(100):
+        action, _ = model(np.expand_dims(obs, axis=0))
+
+        action = np.squeeze(action, axis=0)  # Remove batch dimension from the action
+        action = np.array(action).astype(np.float32)
+
+
         obs, reward, done, truncated, info = env.step(action)
 
+        obs = obs.astype(np.float32) / 255.0
         env.render()  # Render the environment
         if done or truncated:
             obs = env.reset()
