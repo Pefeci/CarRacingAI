@@ -57,28 +57,23 @@ class GeneticProgramming:
         obs = self.env.reset()
         done = False
         total_reward = 0
-        max_steps = self.max_steps
         crfe = CarRacingFeatureExtractor()
         grass_counter = 0
         last_reward = 0
 
-        #for step in range(max_steps):
         while total_reward >= 0:
             speed, angle, _ = crfe.extract_features(obs)
             action_value = func(speed, angle, last_reward)
             action = self.map_function(action_value)
 
-            #print(f"speed: {speed}, angle: {angle}, last_reward: {last_reward}")
             obs, reward, done, truncated, _ = self.env.step(action)
-            car = self.env.car #TODO ja babyyyyy
-             last_reward = reward
+            last_reward = reward
             last_total_reward = total_reward
             total_reward += reward
 
             if last_total_reward > total_reward:
                 grass_counter += 1
-                #print(grass_counter)
-                if grass_counter >= 30:
+                if grass_counter >= 330:
                     break
             else:
                 grass_counter = 0
