@@ -1,8 +1,7 @@
-
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from stable_baselines3 import SAC
+from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import VecFrameStack, VecVideoRecorder, VecTransposeImage
 from stable_baselines3.common.atari_wrappers import WarpFrame
@@ -24,7 +23,7 @@ env = VecTransposeImage(env)
 
 # Load the best model
 best_model_path = os.path.join(log_dir, "best_model.zip")
-best_model = SAC.load(best_model_path, env=env)
+best_model = PPO.load(best_model_path, env=env)
 
 # Evaluate the model
 mean_reward, std_reward = evaluate_policy(best_model, env, n_eval_episodes=20)
@@ -35,7 +34,7 @@ env = VecVideoRecorder(
     env, video_dir,
     video_length=10000,
     record_video_trigger=lambda x: x == 0,
-    name_prefix="best_model_car_racing_sac"
+    name_prefix="best_model_car_racing_ppo"
 )
 
 obs = env.reset()
@@ -71,5 +70,5 @@ plt.fill_between(
 
 plt.xlabel("Timesteps")
 plt.ylabel("Mean Reward")
-plt.title(f"SAC Performance on {env_str}")
+plt.title(f"PPO Performance on {env_str}")
 plt.show()

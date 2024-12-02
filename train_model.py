@@ -3,7 +3,7 @@ import os
 import numpy
 import torch
 import matplotlib.pyplot as plt
-from stable_baselines3 import SAC
+from stable_baselines3 import PPO
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.vec_env import VecFrameStack, VecTransposeImage
 from stable_baselines3.common.callbacks import EvalCallback, CheckpointCallback
@@ -32,31 +32,30 @@ eval_callback = EvalCallback(
     env_val,
     best_model_save_path=log_dir,
     log_path=log_dir,
-    eval_freq=25_000,
+    eval_freq=50_000,
     render=False,
     n_eval_episodes=20
 )
 
-# Initialize SAC
-model = SAC('CnnPolicy', env, verbose=0, buffer_size=50_000, device='cuda')
+# Initialize PPO
+model = PPO('CnnPolicy', env, verbose=0, n_steps=2048, batch_size=64, device='cuda')
 
 # Save a checkpoint every 50,000 steps
 checkpoint_callback = CheckpointCallback(
-    save_freq=50_000,
+    save_freq=350_000,
     save_path="./checkpoints/",
-    name_prefix="sac_car_racing"
+    name_prefix="ppo_car_racing"
 )
 
 # Train the model
 model.learn(
-    total_timesteps=750_000,
+    total_timesteps=350_000,
     progress_bar=True,
     callback=[eval_callback, checkpoint_callback]
 )
 
 # Save the model
-model.save(os.path.join(log_dir, "sac_car_racing"))
+model.save(os.path.join(log_dir, "ppo_car_racing"))
 
 env.close()
 env_val.close()
-
