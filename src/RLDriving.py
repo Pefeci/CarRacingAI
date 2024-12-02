@@ -6,7 +6,7 @@ import os
 from numpy import dtypes
 
 # Create the CarRacing environment
-env = gym.make('CarRacing-v3')
+env = gym.make('CarRacing-v3', render_mode="human")
 
 # Define the Actor-Critic model
 class ActorCritic(tf.keras.Model):
@@ -115,16 +115,16 @@ class PPOAgent:
             episode_rewards += reward
             episode_length += 1
 
-            if last_episode_rewards > episode_rewards:
-                grass_counter += 1
-                if grass_counter >= 129:
-                    print(f'not learning enough {grass_counter}')
-                    done = True
-            else:
-                grass_counter = 0
+            # if last_episode_rewards > episode_rewards:
+            #     grass_counter += 1
+            #     if grass_counter >= 129:
+            #         print(f'not learning enough {grass_counter}')
+            #         done = True
+            # else:
+            #     grass_counter = 0
 
             
-            if len(self.buffer) >= 32:  # Mini-batch size for updates
+            if len(self.buffer) >= 128:  # Mini-batch size for updates
                 loss = self.update_model()
                 print(f'Updating model loss: {loss} and episode length: {episode_length} with reward: {episode_rewards} current action: {action}')
 
@@ -167,7 +167,6 @@ class PPOAgent:
                 delta = rewards[t] - values[t]
             else:
                 delta = rewards[t] + self.gamma * next_values[t] - values[t]
-
             gae = delta + self.gamma * self.lam * (1 - dones[t]) * gae
             advantages[t] = gae
 
@@ -226,15 +225,12 @@ class PPOAgent:
 
 if __name__ == '__main__':
     # Create model and agent
-
-
-
     action_space = env.action_space
     model = ActorCritic(action_space)
     agent = PPOAgent(env, model)
 
     # Train the model
-    total_timesteps = 1000 #1000000
+    total_timesteps = 100000 #1000000
     timesteps = 0
     while timesteps < total_timesteps:
         rewards, length = agent.collect_experience()
@@ -250,7 +246,7 @@ if __name__ == '__main__':
 
     obs = obs.astype(np.float32) / 255.0
 
-    for _ in range(100):
+    for _ in range(1000):
         action, _ = model(np.expand_dims(obs, axis=0))
 
         action = np.squeeze(action, axis=0)  # Remove batch dimension from the action
