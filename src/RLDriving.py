@@ -6,7 +6,7 @@ import os
 from numpy import dtypes
 
 # Create the CarRacing environment
-env = gym.make('CarRacing-v3', render_mode="human")
+env = gym.make('CarRacing-v3')
 
 # Define the Actor-Critic model
 class ActorCritic(tf.keras.Model):
